@@ -48,9 +48,6 @@ for i, t in enumerate(pretranslations):
         resource.path,
         entity.pk,
     )
-    translation_time = t.date
-    review_time = t.approved_date if t.approved else t.rejected_date
-    time_to_review = (review_time - translation_time).total_seconds()
     status = "approved" if t.approved else "rejected"
     comment = t.comments.first()
     comment_content = str(
@@ -58,6 +55,14 @@ for i, t in enumerate(pretranslations):
         if comment
         else ""
     )
+    translation_time = t.date
+    review_time = t.approved_date if t.approved else t.rejected_date
+    # Don't fail if string has no approved or rejected date: use translation
+    # date but note the issue in the comment.
+    if review_time is None:
+        review_time = translation_time
+        comment_content += " ERROR: no review or reject date defined"
+    time_to_review = (review_time - translation_time).total_seconds()
     rating = (
         "0" if status == "approved" else comment_content[0] if comment_content else ""
     )
