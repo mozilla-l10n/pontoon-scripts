@@ -35,7 +35,7 @@ pretranslations = (
 )
 
 output = [
-    "Project,Locale,String,Translation time,Review time,Hours to review,Status,Rating,Comment"
+    "Project,Locale,String,Translation time,Review time,Hours to review,Status,Rating,Comment,Approved,Rejected"
 ]
 for t in pretranslations:
     entity = t.entity
@@ -55,7 +55,15 @@ for t in pretranslations:
         action_type = "translation:rejected"
     review_time = t.actionlog_set.filter(action_type=action_type).first().created_at
     time_to_review = (review_time - translation_time).total_seconds()
-    status = "approved" if t.approved else "rejected"
+    if t.approved:
+        status = "approved"
+        approved_translation = t.string
+        rejected_translation = ""
+    else:
+        status = "rejected"
+        approved_translation = Translation.objects.get(entity=entity, approved=True, locale=t.locale)
+        approved_translation = approved_translation if approved_translation is not None else ""
+        rejected_translation = t.string
     comment = t.comments.first()
     comment_content = str(
         html.unescape(comment.content.removeprefix("<p>").removesuffix("</p>"))
@@ -66,7 +74,7 @@ for t in pretranslations:
         "0" if status == "approved" else comment_content[0] if comment_content else ""
     )
     output.append(
-        '{},{},{},{},{},{},{},{},"{}"'.format(
+        '{},{},{},{},{},{},{},{},§{}§,§{}§,§{}§'.format(
             project,
             locale,
             url,
@@ -76,6 +84,8 @@ for t in pretranslations:
             status,
             rating,
             comment_content,
+            approved_translation,
+            rejected_translation,
         )
     )
 
