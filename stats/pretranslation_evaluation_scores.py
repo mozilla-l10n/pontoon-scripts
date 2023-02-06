@@ -28,6 +28,8 @@ def main():
     ter = TER()
     bleu = BLEU(effective_order=True)
     chrf = CHRF()
+    chrfb3 = CHRF(beta=3)
+    chrfpp = CHRF(word_order=2)
     with open(csv_orig) as f:
         reader = csv.DictReader(f, quotechar="§")
         new_content = []
@@ -39,12 +41,16 @@ def main():
                         "TER": 0,
                         "BLEU": 0,
                         "CHRF": 0,
+                        "CHRFB3": 0,
+                        "CHRF++": 0,
                     }
                 else:
                     scores = {
                         "TER": ter.sentence_score(row["Rejected"], [row["Approved"]]).format(score_only=True),
                         "BLEU": bleu.sentence_score(row["Rejected"], [row["Approved"]]).format(score_only=True),
                         "CHRF": chrf.sentence_score(row["Rejected"], [row["Approved"]]).format(score_only=True),
+                        "CHRFB3": chrfb3.sentence_score(row["Rejected"], [row["Approved"]]).format(score_only=True),
+                        "CHRF++": chrfpp.sentence_score(row["Rejected"], [row["Approved"]]).format(score_only=True),
                     }
 
                 for alg, score in scores.items():
