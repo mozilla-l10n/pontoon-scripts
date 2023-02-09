@@ -9,6 +9,7 @@ Output is formatted as CSV with the following columns:
 * Review time
 * Hours to review
 * Status
+* chrF++ Score
 * Rating
 * Comment
 
