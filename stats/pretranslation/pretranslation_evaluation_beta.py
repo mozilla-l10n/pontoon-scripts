@@ -69,7 +69,7 @@ for t in pretranslations:
     status = "approved" if t.approved else "rejected"
     try:
         score = chrfpp.sentence_score(t.string, [Translation.objects.get(entity=entity, approved=True, locale=t.locale).string])
-    except:
+    except Translation.DoesNotExist:
         errors.append(f"No approved translation available for: {url}.")
         continue
     comment = t.comments.first()
