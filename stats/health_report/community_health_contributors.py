@@ -21,7 +21,8 @@ heroku run --app mozilla-pontoon ./manage.py shell
 
 # Configuration
 LOCALES = [
-    "it",
+    "cs", "de", "es-AR", "es-CL", "es-ES", "es-MX", "fr", "hu", "id", "it",
+    "ja", "nl", "pl", "pt-BR", "ru", "zh-CN",
 ]
 EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
 END_DATE = "17/05/2023"  # DD/MM/YYYY
