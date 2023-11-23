@@ -9,9 +9,7 @@ Output is formatted as CSV with the following columns:
 * Last Login (date)
 * Last Login (months ago)
 * Latest Activity
-* Submissions
-* Reviews
-* All Contributions
+* Total Reviews
 * Approved
 * Rejected
 * Pending
@@ -31,23 +29,17 @@ DAYS_INTERVAL = 365
 
 # Script
 from __future__ import division
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from django.db.models import Count, Q
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.db.models import F, Q
 from django.urls import reverse
 from django.utils import timezone
-from pontoon.base.models import Locale
-from pontoon.base.models import Locale, Translation
-from pontoon.contributors.utils import (
-    users_with_translations_counts,
-    get_contributions_map,
-)
 from django.utils.timezone import get_current_timezone
-from datetime import datetime
-from pontoon.base.utils import convert_to_unix_time
-from django.db.models.functions import TruncDay
-from urllib.parse import urljoin
+from pontoon.base.models import Locale, Translation
 from pontoon.contributors.utils import users_with_translations_counts
+from urllib.parse import urljoin
 
 tz = get_current_timezone()
 end_date = tz.localize(datetime.strptime(END_DATE, "%d/%m/%Y"))
@@ -92,29 +84,56 @@ def get_profile(username):
     )
 
 
-def get_contribution_data(user):
-    contribution_period = Q(created_at__gte=start_date)
-    contributions_map = get_contributions_map(user, contribution_period)
-    contribution_types = {
-        "user_translations": 0,
-        "user_reviews": 0,
-        "all_contributions": 0,
-    }
-    for contribution_type in contribution_types:
-        if contribution_type not in contributions_map.keys():
-            continue
-        contributions_qs = contributions_map[contribution_type]
-        contributions_data = {
-            convert_to_unix_time(item["timestamp"]): item["count"]
-            for item in (
-                contributions_qs.annotate(timestamp=TruncDay("created_at"))
-                .values("timestamp")
-                .annotate(count=Count("id"))
-                .values("timestamp", "count")
-            )
+def get_contribution_data(locale):
+    users = {}
+    # Translations submitted in Pontoon for given locale and timeframe
+    translations = Translation.objects.filter(
+        locale=locale,
+        date__gte=start_date,
+        date__lte=end_date,
+    )
+    # Above translations that have been approved, but not self-approved
+    approved = translations.filter(approved_user__isnull=False).exclude(
+        user=F("approved_user")
+    )
+    approved_users = User.objects.filter(
+        pk__in=approved.values_list("approved_user", flat=True).distinct()
+    )
+    for user in approved_users:
+        users[user.username] = {
+            "approvals": approved.filter(approved_user=user).count(),
+            "rejections": 0,
         }
-        contribution_types[contribution_type] = sum(contributions_data.values())
-    return contribution_types
+    # Above translations that have been rejected, but not self-rejected
+    rejected = translations.filter(rejected_user__isnull=False).exclude(
+        user=F("rejected_user")
+    )
+    rejected_users = User.objects.filter(
+        pk__in=rejected.values_list("rejected_user", flat=True).distinct()
+    )
+    for user in rejected_users:
+        if user.username in users:
+            users[user.username]["rejections"] = rejected.filter(
+                rejected_user=user
+            ).count()
+        else:
+            users[user.email] = {
+                "approvals": 0,
+                "rejections": rejected.filter(rejected_user=user).count(),
+            }
+    for user, user_data in users.items():
+        user_data["total"] = user_data["approvals"] + user_data["rejections"]
+    return users
+
+
+def get_role(locale, contributor):
+    if locale.code == "it" and contributor.username == "mZuzEFP7EcmgBBTbvtgJP2LFFTY":
+        # Remap flod as manager for Italian
+        return "Manager"
+    if locale.code == "fr" and contributor.username == "ekwOqIIpgEhqGiWPIs0ZjonPg90":
+        # Remap tchevalier as manager for French
+        return "Manager"
+    return contributor.locale_role(locale)
 
 
 locales = Locale.objects.all()
@@ -129,37 +148,24 @@ output = [
     f"End date: {end_date.strftime('%d/%m/%Y')}\n",
 ]
 output.append(
-    "Locale,Profile URL,Role,Date Joined,Last Login (date),Last Login (months ago),Latest Activity,Submissions,Reviews,All Contributions,Approved,Rejected,Pending"
+    "Locale,Profile URL,Role,Date Joined,Last Login (date),Last Login (months ago),Latest Activity,Reviews,Approved,Rejected,Pending"
 )
 
 for locale in locales:
     contributors = users_with_translations_counts(
         start_date, Q(locale=locale, date__lte=end_date), None
     )
+    contribution_data = get_contribution_data(locale)
     for contributor in contributors:
-        contribution_data = get_contribution_data(contributor)
-        if (
-            locale.code == "it"
-            and contributor.username == "mZuzEFP7EcmgBBTbvtgJP2LFFTY"
-        ):
-            # Remap flod as manager for Italian
-            role = "Manager"
-        elif (
-            locale.code == "fr"
-            and contributor.username == "ekwOqIIpgEhqGiWPIs0ZjonPg90"
-        ):
-            # Remap tchevalier as manager for French
-            role = "Manager"
-        else:
-            role = contributor.locale_role(locale)
         # Ignore admins
+        role = get_role(locale, contributor)
         if role == "Admin":
             continue
         # Ignore imported strings and pretranslations
         if contributor.username in EXCLUDED_USERS:
             continue
         output.append(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
+            "{},{},{},{},{},{},{},{},{},{},{}".format(
                 locale.code,
                 get_profile(contributor.username),
                 role,
@@ -167,9 +173,7 @@ for locale in locales:
                 last_login(contributor),
                 time_since_login(contributor),
                 get_latest_activity(contributor),
-                contribution_data["user_translations"],
-                contribution_data["user_reviews"],
-                contribution_data["all_contributions"],
+                contribution_data.get(contributor.username, {}).get("total", 0),
                 contributor.translations_approved_count,
                 contributor.translations_rejected_count,
                 contributor.translations_unapproved_count,
