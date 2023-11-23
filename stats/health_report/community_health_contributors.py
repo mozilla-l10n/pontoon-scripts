@@ -2,15 +2,20 @@
 Retrieve a list of active contributors for given locales, timeframe and roles.
 
 Output is formatted as CSV with the following columns:
-* locale
-* date_joined
-* profile_url
-* user_role
-* total_submission_count
-* approved_count
-* rejected_count
-* unreviewed_count
-* approved_rejected_ratio
+* Locale
+* Profile URL
+* Role
+* Date Joined
+* Last Login (date)
+* Last Login (months ago)
+* Latest Activity
+* Submissions
+* Reviews
+* All Contributions
+* Approved
+* Rejected
+* Pending
+
 
 Run the script in Pontoon's Django shell, e.g.:
 heroku run --app mozilla-pontoon ./manage.py shell
@@ -20,6 +25,7 @@ heroku run --app mozilla-pontoon ./manage.py shell
 LOCALES = [
     "it",
 ]
+EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
 END_DATE = "17/05/2023"  # DD/MM/YYYY
 DAYS_INTERVAL = 365
 
@@ -41,6 +47,7 @@ from datetime import datetime
 from pontoon.base.utils import convert_to_unix_time
 from django.db.models.functions import TruncDay
 from urllib.parse import urljoin
+from pontoon.contributors.utils import users_with_translations_counts
 
 tz = get_current_timezone()
 end_date = tz.localize(datetime.strptime(END_DATE, "%d/%m/%Y"))
@@ -122,23 +129,40 @@ output = [
     f"End date: {end_date.strftime('%d/%m/%Y')}\n",
 ]
 output.append(
-    "Locale,Profile,Role,Date Joined,Last Login(Date),Last Login(Months),Latest Activity,Submissions,Reviews,All Contributions"
+    "Locale,Profile URL,Role,Date Joined,Last Login (date),Last Login (months ago),Latest Activity,Submissions,Reviews,All Contributions,Approved,Rejected,Pending"
 )
 
 for locale in locales:
     contributors = users_with_translations_counts(
-        start_date, Q(locale=locale), None, None
+        start_date, Q(locale=locale, date__lte=end_date), None
     )
     for contributor in contributors:
         contribution_data = get_contribution_data(contributor)
-        # Ignore "imported" strings
-        if contributor.username == "Imported":
+        if (
+            locale.code == "it"
+            and contributor.username == "mZuzEFP7EcmgBBTbvtgJP2LFFTY"
+        ):
+            # Remap flod as manager for Italian
+            role = "Manager"
+        elif (
+            locale.code == "fr"
+            and contributor.username == "ekwOqIIpgEhqGiWPIs0ZjonPg90"
+        ):
+            # Remap tchevalier as manager for French
+            role = "Manager"
+        else:
+            role = contributor.locale_role(locale)
+        # Ignore admins
+        if role == "Admin":
+            continue
+        # Ignore imported strings and pretranslations
+        if contributor.username in EXCLUDED_USERS:
             continue
         output.append(
-            "{},{},{},{},{},{},{},{},{},{}".format(
+            "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
                 locale.code,
                 get_profile(contributor.username),
-                contributor.locale_role(locale),
+                role,
                 contributor.date_joined.date(),
                 last_login(contributor),
                 time_since_login(contributor),
@@ -146,6 +170,9 @@ for locale in locales:
                 contribution_data["user_translations"],
                 contribution_data["user_reviews"],
                 contribution_data["all_contributions"],
+                contributor.translations_approved_count,
+                contributor.translations_rejected_count,
+                contributor.translations_unapproved_count,
             )
         )
 
