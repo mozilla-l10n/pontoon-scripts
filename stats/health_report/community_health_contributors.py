@@ -14,7 +14,6 @@ Output is formatted as CSV with the following columns:
 * Rejected
 * Pending
 
-
 Run the script in Pontoon's Django shell, e.g.:
 heroku run --app mozilla-pontoon ./manage.py shell
 """
@@ -131,7 +130,7 @@ def get_role(locale, contributor):
     if locale.code == "it" and contributor.username == "mZuzEFP7EcmgBBTbvtgJP2LFFTY":
         # Remap flod as manager for Italian
         return "Manager"
-    if locale.code == "fr" and contributor.username == "ekwOqIIpgEhqGiWPIs0ZjonPg90":
+    if locale.code == "fr" and contributor.username == "lY_FTvtnYcVoDP7JYZjMsm6tRno":
         # Remap tchevalier as manager for French
         return "Manager"
     return contributor.locale_role(locale)
