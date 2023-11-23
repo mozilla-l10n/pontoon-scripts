@@ -20,8 +20,8 @@ heroku run --app mozilla-pontoon ./manage.py shell
 LOCALES = [
     "it",
 ]
-START_DATE = "01/06/2023"  # DD/MM/YYYY
-CURRENT_DATE = "01/07/2023"  # DD/MM/YYYY
+END_DATE = "17/05/2023"  # DD/MM/YYYY
+DAYS_INTERVAL = 365
 
 # Script
 from __future__ import division
@@ -40,10 +40,11 @@ from django.utils.timezone import get_current_timezone
 from datetime import datetime
 from pontoon.base.utils import convert_to_unix_time
 from django.db.models.functions import TruncDay
+from urllib.parse import urljoin
 
 tz = get_current_timezone()
-start_date = tz.localize(datetime.strptime(START_DATE, "%d/%m/%Y"))
-current_date = tz.localize(datetime.strptime(CURRENT_DATE, "%d/%m/%Y"))
+end_date = tz.localize(datetime.strptime(END_DATE, "%d/%m/%Y"))
+start_date = end_date - relativedelta(days=DAYS_INTERVAL)
 
 
 def get_latest_activity(user):
@@ -78,14 +79,20 @@ def time_since_login(user):
 
 
 def get_profile(username):
-    from urllib.parse import urljoin
-    return urljoin(settings.SITE_URL,reverse("pontoon.contributors.contributor.username", args=[username]))
+    return urljoin(
+        settings.SITE_URL,
+        reverse("pontoon.contributors.contributor.username", args=[username]),
+    )
 
 
 def get_contribution_data(user):
-    contribution_period = Q(created_at__gte=current_date - relativedelta(days=365))
+    contribution_period = Q(created_at__gte=start_date)
     contributions_map = get_contributions_map(user, contribution_period)
-    contribution_types = {"user_translations": 0, "user_reviews": 0, "all_contributions": 0}
+    contribution_types = {
+        "user_translations": 0,
+        "user_reviews": 0,
+        "all_contributions": 0,
+    }
     for contribution_type in contribution_types:
         if contribution_type not in contributions_map.keys():
             continue
@@ -107,8 +114,16 @@ locales = Locale.objects.all()
 if LOCALES:
     locales = Locale.objects.filter(code__in=LOCALES)
 
-output = []
-output.append("Locale,Profile,Role,Date Joined,Last Login(Date),Last Login(Months),Latest Activity,Submissions,Reviews,All Contributions")
+locales_list = [loc.code for loc in locales]
+locales_list.sort()
+output = [
+    f"Locales: {','.join(locales_list)}\n",
+    f"Start date: {start_date.strftime('%d/%m/%Y')}",
+    f"End date: {end_date.strftime('%d/%m/%Y')}\n",
+]
+output.append(
+    "Locale,Profile,Role,Date Joined,Last Login(Date),Last Login(Months),Latest Activity,Submissions,Reviews,All Contributions"
+)
 
 for locale in locales:
     contributors = users_with_translations_counts(
