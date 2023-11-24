@@ -150,7 +150,7 @@ output = [
 output.append(
     "Locale,Profile URL,Role,Date Joined,Last Login (date),Last Login (months ago),Latest Activity,Reviews,Approved,Rejected,Pending"
 )
-
+output_data = []
 for locale in locales:
     contributors = users_with_translations_counts(
         start_date, Q(locale=locale, date__lte=end_date), None
@@ -164,7 +164,7 @@ for locale in locales:
         # Ignore imported strings and pretranslations
         if contributor.username in EXCLUDED_USERS:
             continue
-        output.append(
+        output_data.append(
             "{},{},{},{},{},{},{},{},{},{},{}".format(
                 locale.code,
                 get_profile(contributor.username),
@@ -180,4 +180,6 @@ for locale in locales:
             )
         )
 
+output_data.sort()
+output += output_data
 print("\n".join(output))
