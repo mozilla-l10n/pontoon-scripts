@@ -127,11 +127,13 @@ def get_contribution_data(locale):
 
 
 def get_role(locale, contributor):
-    if locale.code == "it" and contributor.username == "mZuzEFP7EcmgBBTbvtgJP2LFFTY":
-        # Remap flod as manager for Italian
-        return "Manager"
-    if locale.code == "fr" and contributor.username == "lY_FTvtnYcVoDP7JYZjMsm6tRno":
-        # Remap tchevalier as manager for French
+    # Remap admins as managers for specific locales
+    admins = {
+        "fr": ["lY_FTvtnYcVoDP7JYZjMsm6tRno"],  # Théo
+        "it": ["mZuzEFP7EcmgBBTbvtgJP2LFFTY"],  # flod
+        "sl": ["dvgiVCmoeidF2xcqSnBHtpzLTFU"],  # Matjaž
+    }
+    if contributor.username in admins.get(locale.code, []):
         return "Manager"
     return contributor.locale_role(locale)
 
