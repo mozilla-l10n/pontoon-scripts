@@ -24,8 +24,8 @@ LOCALES = [
     "ja", "nl", "pl", "pt-BR", "ru", "zh-CN",
 ]
 EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
-END_DATE = "17/05/2023"  # DD/MM/YYYY
-DAYS_INTERVAL = 365
+END_DATE = "25/11/2023"  # DD/MM/YYYY
+DAYS_INTERVAL = 30
 
 # Script
 from __future__ import division
@@ -33,9 +33,9 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.humanize.templatetags import humanize
 from django.db.models import F, Q
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.timezone import get_current_timezone
 from pontoon.base.models import Locale, Translation
 from pontoon.contributors.utils import users_with_translations_counts
@@ -69,12 +69,9 @@ def last_login(user):
 
 
 def time_since_login(user):
-    now = timezone.now()
     if not user.last_login:
         return "Never logged in"
-    last_login = user.last_login
-    time_since = relativedelta(now, last_login)
-    return time_since.months + (time_since.years * 12)
+    return humanize.naturaltime(user.last_login)
 
 
 def get_profile(username):
@@ -126,47 +123,32 @@ def get_contribution_data(locale):
     return users
 
 
-def get_role(locale, contributor):
-    # Remap admins as managers for specific locales
-    admins = {
-        "fr": ["lY_FTvtnYcVoDP7JYZjMsm6tRno"],  # Théo
-        "it": ["mZuzEFP7EcmgBBTbvtgJP2LFFTY"],  # flod
-        "sl": ["dvgiVCmoeidF2xcqSnBHtpzLTFU"],  # Matjaž
-    }
-    if contributor.username in admins.get(locale.code, []):
-        return "Manager"
-    return contributor.locale_role(locale)
-
-
-locales = Locale.objects.all()
+locales = Locale.objects.all().order_by("code")
 if LOCALES:
-    locales = Locale.objects.filter(code__in=LOCALES)
+    locales = Locale.objects.filter(code__in=LOCALES).order_by("code")
 
-locales_list = [loc.code for loc in locales]
-locales_list.sort()
 output = [
-    f"Locales: {','.join(locales_list)}\n",
+    f"Locales: {','.join(locales.values_list('code', flat=True))}",
     f"Start date: {start_date.strftime('%d/%m/%Y')}",
     f"End date: {end_date.strftime('%d/%m/%Y')}\n",
 ]
 output.append(
     "Locale,Profile URL,Role,Date Joined,Last Login (date),Last Login (months ago),Latest Activity,Reviews,Approved,Rejected,Pending"
 )
-output_data = []
 for locale in locales:
     contributors = users_with_translations_counts(
         start_date, Q(locale=locale, date__lte=end_date), None
     )
     contribution_data = get_contribution_data(locale)
     for contributor in contributors:
+        role = contributor.locale_role(locale)
         # Ignore admins
-        role = get_role(locale, contributor)
         if role == "Admin":
             continue
         # Ignore imported strings and pretranslations
         if contributor.username in EXCLUDED_USERS:
             continue
-        output_data.append(
+        output.append(
             "{},{},{},{},{},{},{},{},{},{},{}".format(
                 locale.code,
                 get_profile(contributor.username),
@@ -182,6 +164,4 @@ for locale in locales:
             )
         )
 
-output_data.sort()
-output += output_data
 print("\n".join(output))
