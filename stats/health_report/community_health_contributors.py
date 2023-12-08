@@ -25,7 +25,7 @@ LOCALES = [
 ]
 EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
 END_DATE = "25/11/2023"  # DD/MM/YYYY
-DAYS_INTERVAL = 30
+DAYS_INTERVAL = 365
 
 # Script
 from __future__ import division
@@ -44,21 +44,6 @@ from urllib.parse import urljoin
 tz = get_current_timezone()
 end_date = tz.localize(datetime.strptime(END_DATE, "%d/%m/%Y"))
 start_date = end_date - relativedelta(days=DAYS_INTERVAL)
-
-
-def get_latest_activity(user):
-    translations = Translation.objects.filter(Q(user=user) | Q(approved_user=user))
-    if not translations.exists():
-        return "No activity yet"
-    translated = translations.latest("date").date
-    approved = translations.latest("approved_date").approved_date
-    activities = []
-    if translated:
-        activities.append(translated)
-    if approved:
-        activities.append(approved)
-    activities.sort()
-    return activities[-1].date() if len(activities) > 0 else None
 
 
 def last_login(user):
@@ -129,8 +114,8 @@ if LOCALES:
 
 output = [
     f"Locales: {','.join(locales.values_list('code', flat=True))}",
-    f"Start date: {start_date.strftime('%d/%m/%Y')}",
-    f"End date: {end_date.strftime('%d/%m/%Y')}\n",
+    f"Start date: {start_date.strftime('%Y-%m-%d')}",
+    f"End date: {end_date.strftime('%Y-%m-%d')}\n",
 ]
 output.append(
     "Locale,Profile URL,Role,Date Joined,Last Login (date),Last Login (months ago),Latest Activity,Reviews,Approved,Rejected,Pending"
@@ -156,7 +141,7 @@ for locale in locales:
                 contributor.date_joined.date(),
                 last_login(contributor),
                 time_since_login(contributor),
-                get_latest_activity(contributor),
+                contributor.latest_action.created_at.strftime('%Y-%m-%d'),
                 contribution_data.get(contributor.username, {}).get("total", 0),
                 contributor.translations_approved_count,
                 contributor.translations_rejected_count,
