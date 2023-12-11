@@ -24,7 +24,7 @@ LOCALES = [
     "ja", "nl", "pl", "pt-BR", "ru", "zh-CN",
 ]
 EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
-END_DATE = "25/11/2023"  # DD/MM/YYYY
+END_DATE = "10/12/2023"  # DD/MM/YYYY
 DAYS_INTERVAL = 365
 
 # Script
@@ -110,7 +110,7 @@ def get_contribution_data(locale):
 
 locales = Locale.objects.all().order_by("code")
 if LOCALES:
-    locales = Locale.objects.filter(code__in=LOCALES).order_by("code")
+    locales = locales.filter(code__in=LOCALES)
 
 output = [
     f"Locales: {','.join(locales.values_list('code', flat=True))}",
