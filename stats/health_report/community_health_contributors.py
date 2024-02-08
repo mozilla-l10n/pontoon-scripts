@@ -110,6 +110,7 @@ for locale in locales:
     )
     actions = (
         ActionLog.objects.filter(
+            translation__locale=locale,
             created_at__gte=start_date,
             created_at__lte=end_date,
             performed_by__in=contributors,
