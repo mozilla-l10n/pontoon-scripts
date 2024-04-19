@@ -54,7 +54,7 @@ Here is the list of our other communication channels where the day and time of t
 Thank you,
 Mozilla L10n Team
 
-P.S. We’re currently working on an opt-in mechanism for emails in Pontoon. In the meantime, if you don’t want to receive these types of message, reply with “unsubscribe” and we’ll stop emailing you.
+P.S. Please reply with “unsubscribe” to stop receiving these messages.
 
 """
 
@@ -75,7 +75,7 @@ Here is the list of our other communication channels where the day and time of t
 <br><br>
 Thank you,<br>
 Mozilla L10n Team<br><br>
-P.S. We’re currently working on an opt-in mechanism for emails in Pontoon. In the meantime, if you don’t want to receive these types of message, reply with “unsubscribe” and we’ll stop emailing you.
+P.S. Please reply with “unsubscribe” to stop receiving these messages.
 """
 
 for email in emails:
