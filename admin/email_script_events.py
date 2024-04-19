@@ -1,5 +1,5 @@
 """
-Send email to all users who submitted at least 5 translations that are now approved in the last 12 months.
+Send email to all users who submitted at least 5 approved translations in the last 12 months.
 """
 
 from django.core.mail import EmailMultiAlternatives
@@ -8,7 +8,9 @@ from datetime import datetime
 
 MIN_COUNT = 5
 START_DATE = datetime(2023, 4, 15)
-EXCLUDED_EMAILS = ["adm@prnet.info"]
+EXCLUDED_EMAILS = [
+    "adm@prnet.info",
+]
 
 contributors = (
     Translation.objects.filter(
