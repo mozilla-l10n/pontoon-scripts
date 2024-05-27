@@ -3,9 +3,30 @@ Send email to all users who submitted at least 5 approved translations in the la
 """
 
 from django.core.mail import EmailMultiAlternatives
+from django.db.models import Count
 from pontoon.base.models import *
+from datetime import datetime
 
-users = User.objects.filter(profile__email_communications_enabled=True)
+MIN_COUNT = 5
+START_DATE = datetime(2023, 4, 15)
+
+contributors = (
+    Translation.objects.filter(
+        date__gte=START_DATE,
+        approved=True,
+    )
+    .values("user")
+    .annotate(count=Count("user"))
+    .distinct()
+)
+
+contributors_with_min_count = [
+    c["user"] for c in contributors if c["count"] >= MIN_COUNT
+]
+
+users = User.objects.filter(pk__in=contributors_with_min_count).exclude(
+    profile__email_communications_enabled=False
+)
 
 emails = [u.contact_email for u in users]
 
