@@ -4,7 +4,6 @@ Send email to all users who submitted at least 5 approved translations in the la
 
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Count
-from django.urls import reverse
 from pontoon.base.models import *
 from datetime import datetime
 
@@ -79,13 +78,14 @@ To no longer receive emails like these, unsubscribe here: <a href="https://ponto
 """
 
 for user in users:
+    uuid = str(user.profile.unique_id)
     msg = EmailMultiAlternatives(
         subject=subject,
-        body=text.replace("{ uuid }", str(user.profile.unique_id)),
+        body=text.replace("{ uuid }", uuid),
         from_email="Mozilla L10n Team <team@pontoon.mozilla.com>",
         # Do not put the entire list into the "to" field
         # or everyone will see all email addresses.
         to=[user.contact_email],
     )
-    msg.attach_alternative(html.replace("{ uuid }", str(user.profile.unique_id)), "text/html")
+    msg.attach_alternative(html.replace("{ uuid }", uuid), "text/html")
     msg.send()
