@@ -2,11 +2,12 @@
 Reject all unreviewed suggestions submitted by a given user.
 """
 
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 
 from pontoon.actionlog.models import ActionLog
-from pontoon.base.models import Translation
+from pontoon.base.models import Translation, TranslatedResource
 
 USER_EMAIL = ""
 ADMIN_EMAIL = ""
@@ -52,5 +53,19 @@ count = translations.update(
     pretranslated=False,
     fuzzy=False,
 )
+
+# Update stats
+resource_locale_pairs = (
+    translations
+    .select_related('entity__resource', 'locale')
+    .values_list('entity__resource', 'locale')
+    .distinct()
+)
+
+query = Q()
+for resource_id, locale_id in resource_locale_pairs:
+    query |= Q(resource_id=resource_id, locale_id=locale_id)
+
+TranslatedResource.objects.filter(query).calculate_stats()
 
 print(f"{count} suggestions rejected.")
