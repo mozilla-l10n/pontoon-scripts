@@ -47,6 +47,8 @@ LOCALES = [
     "vi",
     "sk",
     "ar",
+    # Romanian
+    "ro",
 ]
 EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
 # Example: if collecting date for February 2025, put 01/02/2024 as start
