@@ -20,7 +20,6 @@ MIN_LOCALES = 2
 MIN_MACHINERY_PCT = 0.7  # 70%
 
 # Script
-from datetime import datetime
 from django.db.models import Count, Q, F, ExpressionWrapper, FloatField
 from django.utils.timezone import get_current_timezone, datetime
 from pontoon.base.models import Translation, User
