@@ -19,7 +19,7 @@ Usage:
 
 from os.path import isfile
 import argparse
-import re
+import json
 import sys
 
 
@@ -41,20 +41,17 @@ def main():
         sys.exit(f"File {log_file} doesn't exist.")
 
     paths = {}
-    filter = re.compile(r"path=\"([^\"]*)\".*fwd=\"([\d.]+)\"")
-
     with open(log_file) as f:
         content = f.readlines()
         for line in content:
-            match = filter.search(line)
-            if match:
-                path = match.group(1)
-                ip = match.group(2)
-                if ip == args.ip:
-                    if path not in paths:
-                        paths[path] = 1
-                    else:
-                        paths[path] += 1
+            json_line = json.loads(line)
+            ip = json_line.get("heroku", {}).get("fwd", "")
+            path = json_line.get("heroku", {}).get("path", "")
+            if ip == args.ip:
+                if path not in paths:
+                    paths[path] = 1
+                else:
+                    paths[path] += 1
 
     sorted_paths = dict(sorted(paths.items(), key=lambda item: item[1], reverse=True))
 
