@@ -4,29 +4,36 @@ Retrieves a list of locales missing in Pontoon for a single project by comparing
 Output as CSV file with column Missing Locales.
 
 """
+
 import argparse
 import json
+import requests
 import sys
 from urllib.parse import quote as urlquote
 from urllib.request import urlopen
 
 
 def retrieve_pontoon_locales(project):
-    query = f'{{project(slug:"{project}"){{name,localizations{{locale{{code}}}}}}}}'
-    url = f"https://pontoon.mozilla.org/graphql?query={urlquote(query)}&raw"
-
     try:
-        response = urlopen(url)
-        json_data = json.load(response)
-        if "errors" in json_data:
-            sys.exit(f"Project {project} not found in Pontoon.")
+        url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
+        url = f"https://mozilla-pontoon-staging.herokuapp.com/api/v2/projects/{project}"
+        page = 1
+        locales = []
+        while url:
+            print(f"Reading locales for {project} (page {page})")
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
 
-        locale_list = []
-        for locale in json_data["data"]["project"]["localizations"]:
-            locale_list.append(locale["locale"]["code"])
-        locale_list.sort()
+            for localization in data.get("localizations", {}):
+                locales.append(localization["locale"])
 
-        return locale_list
+            # Get the next page URL
+            url = data.get("next")
+            page += 1
+        locales.sort()
+
+        return locales
     except Exception as e:
         sys.exit(e)
 
