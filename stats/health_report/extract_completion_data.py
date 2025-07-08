@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 
-import json
-import os
-import sys
-from urllib.parse import quote as urlquote
-from urllib.request import urlopen
+import requests
 
 
 def main():
@@ -19,38 +15,19 @@ def main():
     ]
 
     # Get stats from Pontoon
-    query = """
-{
-    projects {
-        name
-        slug
-        localizations {
-            locale {
-                code
-            },
-            approvedStrings,
-            stringsWithWarnings,
-            missingStrings,
-            pretranslatedStrings,
-            totalStrings
-        }
-    }
-}
-"""
     locale_data = {}
-    try:
-        print("Reading Pontoon stats...")
-        url = f"https://pontoon.mozilla.org/graphql?query={urlquote(query)}&raw"
-        response = urlopen(url)
-        json_data = json.load(response)
+    for project in projects:
+        url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
+        url = f"https://mozilla-pontoon-staging.herokuapp.com/api/v2/projects/{project}"
+        page = 1
+        while url:
+            print(f"Reading data for {project} (page {page})")
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
 
-        for project in json_data["data"]["projects"]:
-            slug = project["slug"]
-            if slug not in projects:
-                continue
-
-            for e in project["localizations"]:
-                locale = e["locale"]["code"]
+            for localization in data.get("localizations", {}):
+                locale = localization["locale"]
                 if locale not in locale_data:
                     locale_data[locale] = {
                         "projects": 0,
@@ -60,15 +37,20 @@ def main():
                         "total": 0,
                         "completion": 0,
                     }
-                locale_data[locale]["missing"] += e["missingStrings"]
-                locale_data[locale]["pretranslated"] += e["pretranslatedStrings"]
+                locale_data[locale]["missing"] += localization["missing_strings"]
+                locale_data[locale]["pretranslated"] += localization[
+                    "pretranslated_strings"
+                ]
                 locale_data[locale]["approved"] += (
-                    e["approvedStrings"] + e["stringsWithWarnings"]
+                    localization["approved_strings"]
+                    + localization["strings_with_warnings"]
                 )
-                locale_data[locale]["total"] += e["totalStrings"]
+                locale_data[locale]["total"] += localization["total_strings"]
                 locale_data[locale]["projects"] += 1
-    except Exception as e:
-        print(e)
+
+            # Get the next page URL
+            url = data.get("next")
+            page += 1
 
     # Calculate completion percentage
     for locale in locale_data:
