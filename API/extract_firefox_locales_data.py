@@ -104,7 +104,6 @@ def main():
     ]
 
     url = "https://pontoon.mozilla.org/api/v2/locales"
-    url = "https://mozilla-pontoon-staging.herokuapp.com/api/v2/locales"
     page = 1
     locale_stats = {}
     try:

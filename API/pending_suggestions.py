@@ -11,7 +11,6 @@ def main():
     try:
         # Get the number of pending suggestions for each locale
         url = "https://pontoon.mozilla.org/api/v2/locales"
-        url = "https://mozilla-pontoon-staging.herokuapp.com/api/v2/locales"
         page = 1
         while url:
             print(f"Reading pending suggestions (page {page})")
@@ -19,11 +18,11 @@ def main():
             response.raise_for_status()
             data = response.json()
 
-            for localization in data.get("results", []):
-                locale = localization["code"]
+            for locale_data in data.get("results", []):
+                locale = locale_data["code"]
                 if locale not in pending_suggestions:
                     pending_suggestions[locale] = 0
-                pending_suggestions[locale] += localization["unreviewed_strings"]
+                pending_suggestions[locale] += locale_data["unreviewed_strings"]
             # Get the next page URL
             url = data.get("next")
             page += 1
@@ -36,7 +35,7 @@ def main():
     output.append("Locale,Pending Suggestions")
     # Only print requested locales
     for locale, suggestions in pending_suggestions.items():
-        output.append("{},{}".format(locale, pending_suggestions[locale]))
+        output.append("{},{}".format(locale, suggestions))
 
     # Save locally
     with open("output.csv", "w") as f:

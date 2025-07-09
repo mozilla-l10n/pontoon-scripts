@@ -16,11 +16,10 @@ def main():
     ]
 
     # Get stats from Pontoon
-    locale_data = {}
+    locales_data = {}
     for project in projects:
         try:
             url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
-            url = f"https://mozilla-pontoon-staging.herokuapp.com/api/v2/projects/{project}"
             page = 1
             while url:
                 print(f"Reading data for {project} (page {page})")
@@ -28,10 +27,9 @@ def main():
                 response.raise_for_status()
                 data = response.json()
 
-                for localization in data.get("localizations", {}):
-                    locale = localization["locale"]
-                    if locale not in locale_data:
-                        locale_data[locale] = {
+                for locale, locale_data in data.get("localizations", {}).items():
+                    if locale not in locales_data:
+                        locales_data[locale] = {
                             "projects": 0,
                             "missing": 0,
                             "approved": 0,
@@ -39,16 +37,16 @@ def main():
                             "total": 0,
                             "completion": 0,
                         }
-                    locale_data[locale]["missing"] += localization["missing_strings"]
-                    locale_data[locale]["pretranslated"] += localization[
+                    locales_data[locale]["missing"] += locale_data["missing_strings"]
+                    locales_data[locale]["pretranslated"] += locale_data[
                         "pretranslated_strings"
                     ]
-                    locale_data[locale]["approved"] += (
-                        localization["approved_strings"]
-                        + localization["strings_with_warnings"]
+                    locales_data[locale]["approved"] += (
+                        locale_data["approved_strings"]
+                        + locale_data["strings_with_warnings"]
                     )
-                    locale_data[locale]["total"] += localization["total_strings"]
-                    locale_data[locale]["projects"] += 1
+                    locales_data[locale]["total"] += locale_data["total_strings"]
+                    locales_data[locale]["projects"] += 1
 
                 # Get the next page URL
                 url = data.get("next")
@@ -57,21 +55,21 @@ def main():
             print(f"Error fetching data: {e}")
             sys.exit()
 
-
     # Calculate completion percentage
-    for locale in locale_data:
-        if locale_data[locale]["total"] > 0:
-            locale_data[locale]["completion"] = round(
-                (locale_data[locale]["approved"] / locale_data[locale]["total"]) * 100,
+    for locale in locales_data:
+        if locales_data[locale]["total"] > 0:
+            locales_data[locale]["completion"] = round(
+                (locales_data[locale]["approved"] / locales_data[locale]["total"])
+                * 100,
                 2,
             )
         else:
-            locale_data[locale]["completion"] = 0
+            locales_data[locale]["completion"] = 0
 
     output = []
     output.append("Locale,Number of Projects,Completion,Approved strings,Total Strings")
-    for locale in sorted(list(locale_data.keys())):
-        locale_stats = locale_data[locale]
+    for locale in sorted(list(locales_data.keys())):
+        locale_stats = locales_data[locale]
         output.append(
             f"{locale},{locale_stats['projects']},{locale_stats['completion']},{locale_stats['approved']},{locale_stats['total']}"
         )

@@ -14,7 +14,6 @@ from urllib.parse import quote as urlquote
 def retrieve_pontoon_locales(project):
     try:
         url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
-        url = f"https://mozilla-pontoon-staging.herokuapp.com/api/v2/projects/{project}"
         page = 1
         locales = []
         while url:
