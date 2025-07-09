@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 
-import json
-import os
-import sys
-from urllib.parse import quote as urlquote
-from urllib.request import urlopen
+import requests
 
 
 def main():
@@ -106,84 +102,48 @@ def main():
         "zh-TW",
     ]
 
-    # Get completion stats for locales from Pontoon
-    query = """
-{
-    projects {
-        name
-        slug
-        localizations {
-            locale {
-                code
-            },
-            missingStrings,
-            unreviewedStrings,
-            totalStrings
-        }
-    }
-}
-"""
-    projects_list = {}
-    locale_data = {}
+    url = "https://pontoon.mozilla.org/api/v2/locales"
+    url = "https://mozilla-pontoon-staging.herokuapp.com/api/v2/locales"
+    page = 1
+    locale_stats = {}
     try:
-        print("Reading Pontoon stats...")
-        url = f"https://pontoon.mozilla.org/graphql?query={urlquote(query)}&raw"
-        response = urlopen(url)
-        json_data = json.load(response)
+        while url:
+            print(f"Reading locales (page {page})")
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
 
-        for project in json_data["data"]["projects"]:
-            slug = project["slug"]
-            if slug in ["pontoon-intro", "tutorial"]:
-                continue
-            if not slug in projects_list:
-                projects_list[slug] = project["name"]
+            for locale in data.get("results", {}):
+                if locale["code"] not in locales:
+                    continue
 
-            for element in project["localizations"]:
-                locale = element["locale"]["code"]
-                if not locale in locale_data:
-                    locale_data[locale] = {
-                        "stats": {
-                            "missing": 0,
-                            "unreviewed": 0,
-                            "projects": 0,
-                        },
-                    }
-                locale_data[locale][slug] = {
-                    "missing": element["missingStrings"],
-                    "unreviewed": element["unreviewedStrings"],
+                locale_stats[locale["code"]] = {
+                    "projects": sorted(locale["projects"]),
+                    "missing": locale["missing_strings"],
+                    "unreviewed": locale["unreviewed_strings"],
                 }
-                locale_data[locale]["stats"]["projects"] += 1
-                locale_data[locale]["stats"]["missing"] += element["missingStrings"]
-                locale_data[locale]["stats"]["unreviewed"] += element[
-                    "unreviewedStrings"
-                ]
-    except Exception as e:
-        print(e)
 
+            # Get the next page URL
+            url = data.get("next")
+            page += 1
+    except requests.RequestException as e:
+        print(f"Error fetching data: {e}")
+
+    locale_stats = dict(sorted(locale_stats.items()))
     output = []
     output.append(
         "Locale,Number of Projects,Projects,Missing Strings,Pending Suggestions,Latest Activity"
     )
-    # Only print requested locales
-    for locale in locales:
-        if not locale in locale_data:
-            print("ERROR: no data available for {}".format(locale))
-        data = locale_data[locale]["stats"]
-
-        # Get the list of projects
-        project_slugs = list(locale_data[locale].keys())
-        project_slugs.remove("stats")
-        project_slugs.sort()
+    for locale, locale_data in locale_stats.items():
         output.append(
             "{},{},{},{},{},".format(
                 locale,
-                data["projects"],
-                " ".join(project_slugs),
-                data["missing"],
-                data["unreviewed"],
+                len(locale_data["projects"]),
+                " ".join(locale_data["projects"]),
+                locale_data["missing"],
+                locale_data["unreviewed"],
             )
         )
-
     # Save locally
     with open("output.csv", "w") as f:
         f.write("\n".join(output))
