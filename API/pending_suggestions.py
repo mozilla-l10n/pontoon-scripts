@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import requests
+import sys
 
 
 def main():
@@ -26,10 +27,11 @@ def main():
             # Get the next page URL
             url = data.get("next")
             page += 1
-    except Exception as e:
-        print(e)
-    pending_suggestions = dict(sorted(pending_suggestions.items()))
+    except requests.RequestException as e:
+        print(f"Error fetching data: {e}")
+        sys.exit()
 
+    pending_suggestions = dict(sorted(pending_suggestions.items()))
     output = []
     output.append("Locale,Pending Suggestions")
     # Only print requested locales

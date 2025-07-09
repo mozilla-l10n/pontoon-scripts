@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import requests
+import sys
 
 
 def main():
@@ -128,6 +129,7 @@ def main():
             page += 1
     except requests.RequestException as e:
         print(f"Error fetching data: {e}")
+        sys.exit()
 
     locale_stats = dict(sorted(locale_stats.items()))
     output = []

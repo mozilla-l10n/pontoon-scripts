@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import requests
+import sys
 
 
 def main():
@@ -17,40 +18,45 @@ def main():
     # Get stats from Pontoon
     locale_data = {}
     for project in projects:
-        url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
-        url = f"https://mozilla-pontoon-staging.herokuapp.com/api/v2/projects/{project}"
-        page = 1
-        while url:
-            print(f"Reading data for {project} (page {page})")
-            response = requests.get(url)
-            response.raise_for_status()
-            data = response.json()
+        try:
+            url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
+            url = f"https://mozilla-pontoon-staging.herokuapp.com/api/v2/projects/{project}"
+            page = 1
+            while url:
+                print(f"Reading data for {project} (page {page})")
+                response = requests.get(url)
+                response.raise_for_status()
+                data = response.json()
 
-            for localization in data.get("localizations", {}):
-                locale = localization["locale"]
-                if locale not in locale_data:
-                    locale_data[locale] = {
-                        "projects": 0,
-                        "missing": 0,
-                        "approved": 0,
-                        "pretranslated": 0,
-                        "total": 0,
-                        "completion": 0,
-                    }
-                locale_data[locale]["missing"] += localization["missing_strings"]
-                locale_data[locale]["pretranslated"] += localization[
-                    "pretranslated_strings"
-                ]
-                locale_data[locale]["approved"] += (
-                    localization["approved_strings"]
-                    + localization["strings_with_warnings"]
-                )
-                locale_data[locale]["total"] += localization["total_strings"]
-                locale_data[locale]["projects"] += 1
+                for localization in data.get("localizations", {}):
+                    locale = localization["locale"]
+                    if locale not in locale_data:
+                        locale_data[locale] = {
+                            "projects": 0,
+                            "missing": 0,
+                            "approved": 0,
+                            "pretranslated": 0,
+                            "total": 0,
+                            "completion": 0,
+                        }
+                    locale_data[locale]["missing"] += localization["missing_strings"]
+                    locale_data[locale]["pretranslated"] += localization[
+                        "pretranslated_strings"
+                    ]
+                    locale_data[locale]["approved"] += (
+                        localization["approved_strings"]
+                        + localization["strings_with_warnings"]
+                    )
+                    locale_data[locale]["total"] += localization["total_strings"]
+                    locale_data[locale]["projects"] += 1
 
-            # Get the next page URL
-            url = data.get("next")
-            page += 1
+                # Get the next page URL
+                url = data.get("next")
+                page += 1
+        except requests.RequestException as e:
+            print(f"Error fetching data: {e}")
+            sys.exit()
+
 
     # Calculate completion percentage
     for locale in locale_data:
