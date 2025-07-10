@@ -3,10 +3,17 @@ How many new strings and words have been added to a project each month,
 and how many of these words had a 70%+, 80%+, 90%+ or 100% match in TM.
 """
 
+import re
+
 from dateutil.relativedelta import relativedelta
 from pontoon.base.models import Project, TranslationMemoryEntry, Entity
 from pontoon.base.templatetags.helpers import as_simple_translation
 from pontoon.base.utils import aware_datetime, get_last_months
+
+
+def word_count(entity):
+    return len(re.findall(r"[\w,.-]+", entity.string))
+
 
 months = sorted([aware_datetime(year, month, 1) for year, month in get_last_months(14)])
 
@@ -37,35 +44,27 @@ for month in months:
         "{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}".format(
             month.strftime("%B"),
             entities.count(),
-            sum([e.word_count for e, _ in output]),
-            sum([e.word_count for e, tm in output if tm is None]),
+            sum(word_count(e) for e, _ in output),
+            sum(word_count(e) for e, tm in output if tm is None),
             sum(
-                [
-                    e.word_count
-                    for e, tm in output
-                    if tm is not None and tm.quality >= 70
-                ]
+                word_count(e)
+                for e, tm in output
+                if tm is not None and tm.quality >= 70
             ),
             sum(
-                [
-                    e.word_count
-                    for e, tm in output
-                    if tm is not None and tm.quality >= 80
-                ]
+                word_count(e)
+                for e, tm in output
+                if tm is not None and tm.quality >= 80
             ),
             sum(
-                [
-                    e.word_count
-                    for e, tm in output
-                    if tm is not None and tm.quality >= 90
-                ]
+                word_count(e)
+                for e, tm in output
+                if tm is not None and tm.quality >= 90
             ),
             sum(
-                [
-                    e.word_count
-                    for e, tm in output
-                    if tm is not None and tm.quality == 100
-                ]
+                word_count(e)
+                for e, tm in output
+                if tm is not None and tm.quality == 100
             ),
         )
     )

@@ -1,3 +1,5 @@
+import re
+
 """
 Missing string and word count for given locales.
 """
@@ -14,6 +16,8 @@ for l in LOCALES:
     ).exclude(pk__in=translated)
     print(
         "{}\t\t{}\t\t{}".format(
-            l, entities.count(), sum([e.word_count for e in entities])
+            l,
+            entities.count(),
+            sum(len(re.findall(r"[\w,.-]+", e.string)) for e in entities)
         )
     )
