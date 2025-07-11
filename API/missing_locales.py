@@ -4,42 +4,46 @@ Retrieves a list of locales missing in Pontoon for a single project by comparing
 Output as CSV file with column Missing Locales.
 
 """
+
 import argparse
-import json
+import requests
 import sys
 from urllib.parse import quote as urlquote
-from urllib.request import urlopen
 
 
 def retrieve_pontoon_locales(project):
-    query = f'{{project(slug:"{project}"){{name,localizations{{locale{{code}}}}}}}}'
-    url = f"https://pontoon.mozilla.org/graphql?query={urlquote(query)}&raw"
-
     try:
-        response = urlopen(url)
-        json_data = json.load(response)
-        if "errors" in json_data:
-            sys.exit(f"Project {project} not found in Pontoon.")
+        url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
+        page = 1
+        locales = []
+        while url:
+            print(f"Reading locales for {project} (page {page})")
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            locales.extend(list(data.get("localizations", {}).keys()))
 
-        locale_list = []
-        for locale in json_data["data"]["project"]["localizations"]:
-            locale_list.append(locale["locale"]["code"])
-        locale_list.sort()
+            # Get the next page URL
+            url = data.get("next")
+            page += 1
+        locales.sort()
 
-        return locale_list
-    except Exception as e:
-        sys.exit(e)
+        return locales
+    except requests.RequestException as e:
+        print(f"Error fetching data: {e}")
+        sys.exit()
 
 
 def retrieve_github_locales(owner, repo, path):
-    query = f"/repos/{owner}/{repo}/contents/{path}"
-    url = f"https://api.github.com{urlquote(query)}"
+    query = f"/repos/{owner}/{repo}/contents/{urlquote(path)}"
+    url = f"https://api.github.com{query}"
 
     ignored_folders = ["templates", "configs"]
 
     try:
-        response = urlopen(url)
-        json_data = json.load(response)
+        response = requests.get(url)
+        response.raise_for_status()
+        json_data = response.json()
 
         # Ignore files, hidden folder, non-locale folders via ignore list
         locale_list = [
