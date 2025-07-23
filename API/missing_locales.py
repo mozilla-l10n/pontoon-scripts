@@ -53,6 +53,8 @@ def retrieve_github_locales(owner, repo, path):
             and not e["name"].startswith(".")
             and e["name"] not in ignored_folders
         ]
+        # Use hyphens instead of underscores for locale codes
+        locale_list = [locale.replace("_", "-") for locale in locale_list]
         locale_list.sort()
 
         return locale_list
@@ -108,12 +110,25 @@ def main():
     missing_locales = list(set(github_locales) - set(pontoon_locales))
     missing_locales.sort()
 
-    print(f"Missing locales in Pontoon: {', '.join(missing_locales)}")
-    if args.csv_output:
-        with open("output.csv", "w") as f:
-            output.extend(missing_locales)
-            f.write("\n".join(output))
-            print("Missing locales saved to output.csv")
+    # Clean up possible false positives
+    locales_without_region = [loc.split("-")[0] for loc in pontoon_locales]
+    ignored_locales = []
+    for locale in missing_locales[:]:
+        if locale in ["en-US", "en"] + locales_without_region:
+            missing_locales.remove(locale)
+            ignored_locales.append(locale)
+    if ignored_locales:
+        print(f"Ignored locales: {', '.join(ignored_locales)}")
+
+    if missing_locales:
+        print(f"Missing locales in Pontoon: {', '.join(missing_locales)}")
+        if args.csv_output:
+            with open("output.csv", "w") as f:
+                output.extend(missing_locales)
+                f.write("\n".join(output))
+                print("Missing locales saved to output.csv")
+    else:
+        print("No missing locales found.")
 
 
 if __name__ == "__main__":
