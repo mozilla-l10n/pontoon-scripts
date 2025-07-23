@@ -1,53 +1,41 @@
 #!/usr/bin/env python3
 
-import json
-import os
+import requests
 import sys
-from urllib.parse import quote as urlquote
-from urllib.request import urlopen
 
 
 def main():
     # Get completion stats for locales from Pontoon
-    query = """
-{
-    projects {
-        name
-        slug
-        localizations {
-            locale {
-                code
-            },
-            unreviewedStrings
-        }
-    }
-}
-"""
+
     pending_suggestions = {}
     try:
-        print("Reading Pontoon stats...")
-        url = f"https://pontoon.mozilla.org/graphql?query={urlquote(query)}&raw"
-        response = urlopen(url)
-        json_data = json.load(response)
+        # Get the number of pending suggestions for each locale
+        url = "https://pontoon.mozilla.org/api/v2/locales"
+        page = 1
+        while url:
+            print(f"Reading pending suggestions (page {page})")
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
 
-        for project in json_data["data"]["projects"]:
-            slug = project["slug"]
-            if slug in ["pontoon-intro", "tutorial"]:
-                continue
-
-            for element in project["localizations"]:
-                locale = element["locale"]["code"]
-                if not locale in pending_suggestions:
+            for locale_data in data.get("results", []):
+                locale = locale_data["code"]
+                if locale not in pending_suggestions:
                     pending_suggestions[locale] = 0
-                pending_suggestions[locale] += element["unreviewedStrings"]
-    except Exception as e:
-        print(e)
+                pending_suggestions[locale] += locale_data["unreviewed_strings"]
+            # Get the next page URL
+            url = data.get("next")
+            page += 1
+    except requests.RequestException as e:
+        print(f"Error fetching data: {e}")
+        sys.exit()
 
+    pending_suggestions = dict(sorted(pending_suggestions.items()))
     output = []
     output.append("Locale,Pending Suggestions")
     # Only print requested locales
     for locale, suggestions in pending_suggestions.items():
-        output.append("{},{}".format(locale, pending_suggestions[locale]))
+        output.append("{},{}".format(locale, suggestions))
 
     # Save locally
     with open("output.csv", "w") as f:
