@@ -9,14 +9,16 @@ Usage:
 from os.path import isfile
 import argparse
 import json
+import glob
+import os
 import sys
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "log_file",
-        help="Path to log file",
+        "log_path",
+        help="Path to folder with log file (.json Heroku format)",
     )
     parser.add_argument(
         "--threshold",
@@ -25,22 +27,25 @@ def main():
         help="Threshold under which IPs are ignored",
     )
     args = parser.parse_args()
-    log_file = args.log_file
+    log_path = args.log_path
 
-    if not isfile(log_file):
-        sys.exit(f"File {log_file} doesn't exist.")
+    json_files = glob.glob(os.path.join(log_path, "*.json"))
+
+    if not json_files:
+        sys.exit(f"File {log_path} doesn't include any log file.")
 
     ip_stats = {}
-    with open(log_file) as f:
-        content = f.readlines()
-        for line in content:
-            json_line = json.loads(line)
-            ip = json_line.get("heroku", {}).get("fwd", "")
-            if ip:
-                if ip not in ip_stats:
-                    ip_stats[ip] = 1
-                else:
-                    ip_stats[ip] += 1
+    for json_file in json_files:
+        with open(json_file) as f:
+            content = f.readlines()
+            for line in content:
+                json_line = json.loads(line)
+                ip = json_line.get("heroku", {}).get("fwd", "")
+                if ip:
+                    if ip not in ip_stats:
+                        ip_stats[ip] = 1
+                    else:
+                        ip_stats[ip] += 1
 
     ip_stats = {
         ip: count for ip, count in ip_stats.items() if count >= int(args.threshold)
