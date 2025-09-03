@@ -27,7 +27,8 @@ def main():
                 response.raise_for_status()
                 data = response.json()
 
-                for locale, locale_data in data.get("localizations", {}).items():
+                for locale_data in data.get("localizations", []):
+                    locale = locale_data["locale"]["code"]
                     if locale not in locales_data:
                         locales_data[locale] = {
                             "projects": 0,

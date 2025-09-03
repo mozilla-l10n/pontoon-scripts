@@ -21,7 +21,7 @@ def retrieve_pontoon_locales(project):
             response = requests.get(url)
             response.raise_for_status()
             data = response.json()
-            locales.extend(list(data.get("localizations", {}).keys()))
+            locales.extend(data.get("locales", []))
 
             # Get the next page URL
             url = data.get("next")
