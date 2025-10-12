@@ -1,5 +1,5 @@
 """
-This script can be used to extract the number of requests for IPs from
+This script can be used to extract the number of requests for user agents from
 Papertrail's archives in JSON (or native json.gz) format.
 
 Usage:
@@ -52,7 +52,7 @@ def main():
     for archive_file in archive_files:
         for line in iter_log_lines(archive_file):
             json_line = json.loads(line)
-            ip = json_line.get("heroku", {}).get("fwd", "")
+            ip = json_line.get("apache", {}).get("userAgent", "")
             if ip:
                 if ip not in ip_stats:
                     ip_stats[ip] = 1
