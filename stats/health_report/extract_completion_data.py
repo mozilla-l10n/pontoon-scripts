@@ -19,7 +19,7 @@ def main():
     locales_data = {}
     for project in projects:
         try:
-            url = f"https://pontoon.mozilla.org/api/v2/projects/{project}"
+            url = f"https://pontoon.mozilla.org/api/v2/projects/{project}/?fields=localizations"
             page = 1
             while url:
                 print(f"Reading data for {project} (page {page})")

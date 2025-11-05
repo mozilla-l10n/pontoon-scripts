@@ -103,7 +103,7 @@ def main():
         "zh-TW",
     ]
 
-    url = "https://pontoon.mozilla.org/api/v2/locales"
+    url = "https://pontoon.mozilla.org/api/v2/locales/?fields=code,projects,missing_strings,unreviewed_strings"
     page = 1
     locale_stats = {}
     try:

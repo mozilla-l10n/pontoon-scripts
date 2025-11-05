@@ -10,7 +10,7 @@ def main():
     pending_suggestions = {}
     try:
         # Get the number of pending suggestions for each locale
-        url = "https://pontoon.mozilla.org/api/v2/locales"
+        url = "https://pontoon.mozilla.org/api/v2/locales/?fields=code,unreviewed_strings"
         page = 1
         while url:
             print(f"Reading pending suggestions (page {page})")
