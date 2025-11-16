@@ -12,6 +12,7 @@ import glob
 import gzip
 import os
 import sys
+from ipaddress import ip_address, ip_network
 
 
 def iter_log_lines(fp):
@@ -48,6 +49,27 @@ def main():
     else:
         print(f"Found {len(archive_files)} log files.")
 
+    # Copy from Heroku settings
+    blocked_ip_setting = ""
+
+    BLOCKED_IPS = []
+    BLOCKED_IP_RANGES = []
+    for ip in blocked_ip_setting.split(","):
+        ip = ip.strip()
+        if ip == "":
+            continue
+        try:
+            # If the IP is valid, store it directly as string
+            ip_obj = ip_address(ip)
+            BLOCKED_IPS.append(ip)
+        except ValueError:
+            try:
+                # Check if it's a valid IP range (CIDR notation)
+                ip_obj = ip_network(ip, strict=False)
+                BLOCKED_IP_RANGES.append(ip_obj)
+            except ValueError:
+                print(f"Invalid IP or IP range defined in BLOCKED_IPS: {ip}")
+
     ip_stats = {}
     for archive_file in archive_files:
         for line in iter_log_lines(archive_file):
@@ -65,7 +87,19 @@ def main():
     ip_stats = dict(sorted(ip_stats.items(), key=lambda x: x[1], reverse=True))
 
     for ip, count in ip_stats.items():
-        print(f"{ip}: {count}")
+        try:
+            ip_obj = ip_address(ip)
+        except ValueError:
+            print(f"Invalid IP extracted from log: {ip}")
+            continue
+        blocked = False
+        if ip in BLOCKED_IPS:
+            blocked = True
+        for ip_range in BLOCKED_IP_RANGES:
+            if ip_obj in ip_range:
+                blocked = True
+
+        print(f"{ip}{' (blocked)' if blocked else ''}: {count}")
 
 
 if __name__ == "__main__":
