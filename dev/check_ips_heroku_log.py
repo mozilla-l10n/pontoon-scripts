@@ -56,7 +56,7 @@ def main():
         sys.exit(f"File {log_file} doesn't exist.")
 
     ips = {}
-    filter = re.compile(r"fwd=\"([\d.]+)\"")
+    filter = re.compile(r"fwd=\"(.*)\"")
 
     # Copy from Heroku settings
     blocked_ip_setting = ""
@@ -85,6 +85,8 @@ def main():
             match = filter.search(line)
             if match:
                 ip = match.group(1)
+                if len(ip.split(",")) > 1:
+                    ip = ip.split(",")[0].strip()
                 if ip not in ips:
                     ips[ip] = 1
                 else:
