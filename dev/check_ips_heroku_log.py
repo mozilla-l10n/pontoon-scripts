@@ -85,8 +85,13 @@ def main():
             match = filter.search(line)
             if match:
                 ip = match.group(1)
-                if len(ip.split(",")) > 1:
-                    ip = ip.split(",")[0].strip()
+                num_ips = len(ip.split(","))
+                if num_ips > 1:
+                    ip = (
+                        ip.split(",")[0].strip()
+                        if num_ips == 2
+                        else ip.split(",")[1].strip()
+                    )
                 if ip not in ips:
                     ips[ip] = 1
                 else:

@@ -76,8 +76,13 @@ def main():
             json_line = json.loads(line)
             ip = json_line.get("heroku", {}).get("fwd", "")
             if ip:
-                if len(ip.split(",")) >1:
-                    ip = ip.split(",")[0].strip()
+                num_ips = len(ip.split(","))
+                if num_ips > 1:
+                    ip = (
+                        ip.split(",")[0].strip()
+                        if num_ips == 2
+                        else ip.split(",")[1].strip()
+                    )
                 if ip not in ip_stats:
                     ip_stats[ip] = 1
                 else:
