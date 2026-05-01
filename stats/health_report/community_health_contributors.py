@@ -50,11 +50,10 @@ LOCALES = [
     # Romanian
     "ro",
 ]
-EXCLUDED_USERS = ["Imported", "google-translate", "translation-memory"]
 # Example: if collecting date for February 2025, put 01/02/2024 as start
 # and 01/03/2025 as end date.
-START_DATE = "01/02/2024"  # DD/MM/YYYY
-END_DATE = "01/03/2025"  # DD/MM/YYYY
+START_DATE = "01/04/2025"  # DD/MM/YYYY
+END_DATE = "01/05/2026"  # DD/MM/YYYY
 LOCALES.sort()
 
 # Script
@@ -117,7 +116,7 @@ for locale in locales:
             translation__locale=locale,
             created_at__gte=start_date,
             created_at__lte=end_date,
-            performed_by__in=contributors,
+            performed_by__in=[c for c in contributors if c.pk is not None],
             action_type__in=[
                 ActionLog.ActionType.TRANSLATION_APPROVED,
                 ActionLog.ActionType.TRANSLATION_REJECTED,
@@ -130,11 +129,8 @@ for locale in locales:
     reviews_performed = {action["performed_by"]: action["count"] for action in actions}
     for contributor in contributors:
         role = contributor.locale_role(locale)
-        # Ignore admins
-        if role == "Admin":
-            continue
-        # Ignore imported strings and pretranslations
-        if contributor.username in EXCLUDED_USERS:
+        # Ignore admins and system users (imported strings, pretranslations, sync)
+        if role in ("Admin", "System User"):
             continue
         output.append(
             f"{locale.code},{get_profile(contributor.username)},{role},"
