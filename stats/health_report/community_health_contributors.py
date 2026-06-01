@@ -52,8 +52,8 @@ LOCALES = [
 ]
 # Example: if collecting date for February 2025, put 01/02/2024 as start
 # and 01/03/2025 as end date.
-START_DATE = "01/04/2025"  # DD/MM/YYYY
-END_DATE = "01/05/2026"  # DD/MM/YYYY
+START_DATE = "01/05/2025"  # DD/MM/YYYY
+END_DATE = "01/06/2026"  # DD/MM/YYYY
 LOCALES.sort()
 
 # Script

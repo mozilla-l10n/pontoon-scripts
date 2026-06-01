@@ -8,10 +8,10 @@ def main():
     projects = [
         "firefox-for-android",
         "firefox-for-ios",
-        "firefox-monitor-website",
         "firefox-relay-website",
         "firefox",
         "mozilla-accounts",
+        "mozilla-monitor-website",
         "mozilla-vpn-client",
     ]
 
