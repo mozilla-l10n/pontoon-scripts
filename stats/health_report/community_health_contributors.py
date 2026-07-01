@@ -52,8 +52,8 @@ LOCALES = [
 ]
 # Example: if collecting date for February 2025, put 01/02/2024 as start
 # and 01/03/2025 as end date.
-START_DATE = "01/05/2025"  # DD/MM/YYYY
-END_DATE = "01/06/2026"  # DD/MM/YYYY
+START_DATE = "01/06/2025"  # DD/MM/YYYY
+END_DATE = "01/07/2026"  # DD/MM/YYYY
 LOCALES.sort()
 
 # Script
@@ -66,6 +66,7 @@ from django.urls import reverse
 from django.utils.timezone import get_current_timezone
 from pontoon.actionlog.models import ActionLog
 from pontoon.base.models import Locale
+from pontoon.base.user_utils import user_locale_role
 from pontoon.contributors.utils import users_with_translations_counts
 from urllib.parse import urljoin
 
@@ -85,6 +86,13 @@ def time_since_login(user):
     if not user.last_login:
         return "Never logged in"
     return humanize.naturaltime(user.last_login)
+
+
+def latest_activity(user):
+    action = user.latest_action()
+    if not action:
+        return "No activity"
+    return action.created_at.strftime("%Y-%m-%d")
 
 
 def get_profile(username):
@@ -128,14 +136,14 @@ for locale in locales:
     )
     reviews_performed = {action["performed_by"]: action["count"] for action in actions}
     for contributor in contributors:
-        role = contributor.locale_role(locale)
+        role = user_locale_role(contributor, locale)
         # Ignore admins and system users (imported strings, pretranslations, sync)
         if role in ("Admin", "System User"):
             continue
         output.append(
             f"{locale.code},{get_profile(contributor.username)},{role},"
             f'{contributor.date_joined.date()},{last_login(contributor)},"{time_since_login(contributor)}",'
-            f"{contributor.latest_action.created_at.strftime('%Y-%m-%d')},{reviews_performed.get(contributor.pk, 0)},"
+            f"{latest_activity(contributor)},{reviews_performed.get(contributor.pk, 0)},"
             f"{contributor.translations_approved_count},{contributor.translations_rejected_count},{contributor.translations_unapproved_count}"
         )
 
